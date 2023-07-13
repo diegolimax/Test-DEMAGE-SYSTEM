@@ -4917,6 +4917,14 @@ bool Game::combatChangeHealth(const CombatParams& params, Creature* attacker, Cr
 	{
 		if(!force && target->getHealth() <= 0)
 			return false;
+		
+		for(auto it : target->getCreatureEvents(CREATURE_EVENT_CHANGESTATUS)) {
+			it->executeChangeStatus(target, attacker, params.combatType, healthChange, false);
+		}
+
+		if (healthChange <= 0) {
+			return false;
+		}
 
 		bool deny = false;
 		CreatureEventList statsChangeEvents = target->getCreatureEvents(CREATURE_EVENT_STATSCHANGE);
@@ -4942,6 +4950,9 @@ bool Game::combatChangeHealth(const CombatParams& params, Creature* attacker, Cr
 			SpectatorVec textList;
 			for(SpectatorVec::const_iterator it = list.begin(); it != list.end(); ++it)
 			{
+				
+				if(!(*it)->getPlayer())
+					continue;
 				if((*it) != attacker && (*it) != target && (*it)->getPosition().z == target->getPosition().z)
 					textList.insert(*it);
 			}
@@ -5009,22 +5020,39 @@ bool Game::combatChangeHealth(const CombatParams& params, Creature* attacker, Cr
 		if(params.element.damage && params.element.type != COMBAT_NONE)
 			elementDamage = -params.element.damage;
 
+		Player* attackerPlayer = attacker ? attacker->getPlayer() : NULL;
+		if (attackerPlayer) {
+			float dmgMultiplier = attackerPlayer->getDamageMultiplier();
+			healthChange *= dmgMultiplier;
+			elementDamage *= dmgMultiplier;
+		}
+
 		int32_t damage = -healthChange;
 		if(damage > 0)
 		{
 			if(target->hasCondition(CONDITION_MANASHIELD) && params.combatType != COMBAT_UNDEFINEDDAMAGE)
 			{
-				int32_t manaDamage = std::min(target->getMana(), damage + elementDamage);
-				damage = std::max((int32_t)0, damage + elementDamage - manaDamage);
+				int64_t manaDamage = std::min<int64_t>(target->getMana(), damage + elementDamage);
+				damage = std::max((int64_t)0, damage + elementDamage - manaDamage);
 
 				elementDamage = 0; // TODO: I don't know how it works ;(
 				if(manaDamage && combatChangeMana(attacker, target, -manaDamage, params.combatType, true))
 					addMagicEffect(list, targetPos, MAGIC_EFFECT_LOSE_ENERGY);
 			}
 
-			damage = std::min(target->getHealth(), damage);
+			damage = std::min<int32_t>(target->getHealth(), damage);
 			if(damage > 0)
 			{
+				int32_t tmpDamage = -damage;
+				for(auto it : target->getCreatureEvents(CREATURE_EVENT_CHANGESTATUS)) {
+					it->executeChangeStatus(target, attacker, params.combatType, tmpDamage, false);
+				}
+
+				if (tmpDamage >= 0) {
+					return false;
+				}
+
+				damage = std::min<int32_t>(target->getHealth(), std::abs(tmpDamage));
 				bool deny = false;
 				CreatureEventList statsChangeEvents = target->getCreatureEvents(CREATURE_EVENT_STATSCHANGE);
 				for(CreatureEventList::iterator it = statsChangeEvents.begin(); it != statsChangeEvents.end(); ++it)
@@ -5192,6 +5220,8 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, int32_t manaCh
 			SpectatorVec textList;
 			for(SpectatorVec::const_iterator it = list.begin(); it != list.end(); ++it)
 			{
+			  if(!(*it)->getPlayer())
+					continue;
 				if((*it) != attacker && (*it) != target && (*it)->getPosition().z == target->getPosition().z)
 					textList.insert(*it);
 			}
@@ -5247,14 +5277,27 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, int32_t manaCh
 	}
 	else if(!inherited && Combat::canDoCombat(attacker, target, true) != RET_NOERROR)
 	{
-		addMagicEffect(targetPos, MAGIC_EFFECT_POFF);
+		SpectatorVec list;
+		getSpectators(list, targetPos, true, true);									 			   
+		addMagicEffect(list, targetPos, MAGIC_EFFECT_POFF);
 		return false;
 	}
 	else
 	{
-		int32_t manaLoss = std::min(target->getMana(), -manaChange);
+		int32_t manaLoss = std::min<int32_t>(target->getMana(), std::abs(manaChange));
 		if(manaLoss > 0)
 		{
+			
+			int32_t tmpDamage = -manaLoss;
+			for(auto it : target->getCreatureEvents(CREATURE_EVENT_CHANGESTATUS)) {
+				it->executeChangeStatus(target, attacker, combatType, tmpDamage, true);
+			}
+
+			if (tmpDamage >= 0) {
+				return false;
+			}
+
+			manaLoss = std::min<int32_t>(target->getMana(), std::abs(tmpDamage));
 			bool deny = false;
 			CreatureEventList statsChangeEvents = target->getCreatureEvents(CREATURE_EVENT_STATSCHANGE);
 			for(CreatureEventList::iterator it = statsChangeEvents.begin(); it != statsChangeEvents.end(); ++it)
@@ -5274,6 +5317,8 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, int32_t manaCh
 			SpectatorVec textList;
 			for(SpectatorVec::const_iterator it = list.begin(); it != list.end(); ++it)
 			{
+				if(!(*it)->getPlayer())
+					continue;
 				if((*it) != attacker && (*it) != target && (*it)->getPosition().z == target->getPosition().z)
 					textList.insert(*it);
 			}

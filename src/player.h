@@ -491,7 +491,7 @@ class Player : public Creature, public Cylinder
 		virtual void drainHealth(Creature* attacker, CombatType_t combatType, int32_t damage);
 		virtual void drainMana(Creature* attacker, CombatType_t combatType, int32_t damage);
 
-		void addExperience(uint64_t exp);
+		void addExperience(uint64_t exp, Creature* source);
 		void removeExperience(uint64_t exp, bool updateStats = true);
 		void addManaSpent(uint64_t amount, bool useMultiplier = true);
 		void addSkillAdvance(skills_t skill, uint64_t count, bool useMultiplier = true);
@@ -506,6 +506,9 @@ class Player : public Creature, public Cylinder
 		void addExhaust(uint32_t ticks, Exhaust_t exhaust);
 		void addInFightTicks(bool pzLock, int32_t ticks = 0);
 		void addDefaultRegeneration(uint32_t addTicks);
+		float getDamageMultiplier() const { return damageMultiplier; }
+		void setDamageMultiplier(float multiplier) { damageMultiplier = multiplier; }
+																
 
 		//combat event functions
 		virtual void onAddCondition(ConditionType_t type, bool hadCondition);
@@ -944,6 +947,7 @@ class Player : public Creature, public Cylinder
 		double inventoryWeight;
 		double capacity;
 		char managerChar[100];
+		float damageMultiplier;
 
 		std::string managerString, managerString2;
 		std::string account, password;

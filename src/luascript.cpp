@@ -2588,6 +2588,10 @@ void LuaInterface::registerFunctions()
 
 	//bit table
 	luaL_register(m_luaState, "bit", LuaInterface::luaBitTable);
+	
+	lua_register(m_luaState, "getPlayerDamageMultiplier", LuaInterface::luaGetPlayerDamageMultiplier);
+
+	lua_register(m_luaState, "setPlayerDamageMultiplier", LuaInterface::luaSetPlayerDamageMultiplier);
 
 	//std table
 	luaL_register(m_luaState, "std", LuaInterface::luaStdTable);
@@ -2600,6 +2604,38 @@ const luaL_Reg LuaInterface::luaSystemTable[] =
 
 	{NULL, NULL}
 };
+
+int32_t LuaInterface::luaGetPlayerDamageMultiplier(lua_State* L)
+{
+	//getPlayerDamageMultiplier(cid)
+	Player* player = getEnv()->getPlayerByUID(static_cast<uint32_t>(popNumber(L)));
+	if(player)
+	{
+		lua_pushnumber(L, player->getDamageMultiplier());
+		return 1;
+	}
+
+	errorEx(getError(LUA_ERROR_PLAYER_NOT_FOUND));
+	lua_pushnil(L);
+	return 1;
+}
+
+int32_t LuaInterface::luaSetPlayerDamageMultiplier(lua_State* L)
+{
+	//setPlayerDamageMultiplier(cid, multiplier)
+	float multiplier = popFloatNumber(L);
+	Player* player = getEnv()->getPlayerByUID(static_cast<uint32_t>(popNumber(L)));
+	if(player)
+	{
+		player->setDamageMultiplier(multiplier);
+		lua_pushboolean(L, true);
+		return 1;
+	}
+
+	errorEx(getError(LUA_ERROR_PLAYER_NOT_FOUND));
+	lua_pushnil(L);
+	return 1;
+}
 
 const luaL_Reg LuaInterface::luaDatabaseTable[] =
 {
@@ -6276,7 +6312,7 @@ int32_t LuaInterface::luaDoPlayerAddExperience(lua_State* L)
 	if(Player* player = env->getPlayerByUID(popNumber(L)))
 	{
 		if(amount > 0)
-			player->addExperience(amount);
+			player->addExperience(amount, nullptr);
 		else if(amount < 0)
 			player->removeExperience(std::abs(amount));
 		else

@@ -57,7 +57,9 @@ enum CreatureEventType_t : uint64_t
 	CREATURE_EVENT_KILL = 1 << 30,
 	CREATURE_EVENT_DEATH = static_cast<uint64_t>(1) << 31,
 	CREATURE_EVENT_PREPAREDEATH = static_cast<uint64_t>(1) << 32,
-	CREATURE_EVENT_EXTENDED_OPCODE = static_cast<uint64_t>(1) << 33 // otclient additional network opcodes
+	CREATURE_EVENT_EXTENDED_OPCODE = static_cast<uint64_t>(1) << 33, // otclient additional network opcodes
+	CREATURE_EVENT_GAINEXPERIENCE = static_cast<uint64_t>(1) << 34, // UPDATE 20/05/21
+	CREATURE_EVENT_CHANGESTATUS = static_cast<uint64_t>(1) << 35																			   
 };
 
 enum StatsChange_t
@@ -150,6 +152,8 @@ class CreatureEvent : public Event
 		uint32_t executeDeath(Creature* creature, Item* corpse, DeathList deathList);
 		uint32_t executePrepareDeath(Creature* creature, DeathList deathList);
 		uint32_t executeExtendedOpcode(Creature* creature, uint8_t opcode, const std::string& buffer);
+		void executeGainExperience(Player* player, Creature* source, double& experience);
+		void executeChangeStatus(Creature* creature, Creature* attacker, CombatType_t combat, int32_t& value, bool isMana);																											 
 		//
 
 	protected:

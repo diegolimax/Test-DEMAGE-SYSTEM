@@ -211,6 +211,10 @@ CreatureEventType_t CreatureEvents::getType(const std::string& type)
 		_type = CREATURE_EVENT_PREPAREDEATH;
 	else if(type == "extendedopcode")
 		_type = CREATURE_EVENT_EXTENDED_OPCODE;
+		else if(type == "gainexperience")
+		_type = CREATURE_EVENT_GAINEXPERIENCE;
+	else if(type == "changestatus")
+		_type = CREATURE_EVENT_CHANGESTATUS;						  
 
 	return _type;
 }
@@ -330,6 +334,10 @@ std::string CreatureEvent::getScriptEventName() const
 			return "onPrepareDeath";
 		case CREATURE_EVENT_EXTENDED_OPCODE:
 			return "onExtendedOpcode";
+		case CREATURE_EVENT_GAINEXPERIENCE:
+			return "onGainExperience";
+		case CREATURE_EVENT_CHANGESTATUS:
+			return "onChangeStatus";				   
 		case CREATURE_EVENT_NONE:
 		default:
 			break;
@@ -401,6 +409,10 @@ std::string CreatureEvent::getScriptEventParams() const
 			return "cid, deathList";
 		case CREATURE_EVENT_EXTENDED_OPCODE:
 			return "cid, opcode, buffer";
+		case CREATURE_EVENT_GAINEXPERIENCE:
+			return "cid, source, experience";
+		case CREATURE_EVENT_CHANGESTATUS:
+			return "cid, attacker, combat, value, isMana"; 
 		case CREATURE_EVENT_NONE:
 		default:
 			break;
@@ -2141,5 +2153,82 @@ uint32_t CreatureEvent::executeExtendedOpcode(Creature* creature, uint8_t opcode
 	{
 		std::cout << "[Error - CreatureEvent::executeRemoved] Call stack overflow." << std::endl;
 		return 0;
+	}
+}
+
+void CreatureEvent::executeGainExperience(Player* player, Creature* source, double& experience)
+{
+	//onGainExperience(cid, source, experience)
+	if(m_scripted == EVENT_SCRIPT_BUFFER)
+	{
+		std::cout << "[Error - CreatureEvent::executeGainExperience] This function doesn't support buffering." << std::endl;
+		return;
+	}
+
+	if(m_interface->reserveEnv())
+	{
+		ScriptEnviroment* env = m_interface->getEnv();
+		env->setScriptId(m_scriptId, m_interface);
+		env->setRealPos(player->getPosition());
+
+		lua_State* L = m_interface->getState();
+		m_interface->pushFunction(m_scriptId);
+
+		lua_pushnumber(L, env->addThing(player));
+		lua_pushnumber(L, env->addThing(source));
+		lua_pushnumber(L, experience);
+
+		int args = lua_gettop(L);
+		if(lua_pcall(L, 3, 1, 0) == 0)
+			experience = LuaInterface::popFloatNumber(L);
+		else
+			LuaInterface::error(NULL, LuaInterface::popString(L));
+
+		if((lua_gettop(L) + 3 + 1) != args)
+			LuaInterface::error(__FUNCTION__, "Stack size changed!");
+
+		m_interface->releaseEnv();
+	}
+	else
+		std::cout << "[Error - CreatureEvent::executeGainExperience] Call stack overflow." << std::endl;
+}
+
+void CreatureEvent::executeChangeStatus(Creature* creature, Creature* attacker, CombatType_t combat, int32_t& value, bool isMana)
+{
+	//onChangeStatus(cid, attacker, combat, value, isMana)
+	if (m_interface->reserveEnv()) {
+		if (m_scripted == EVENT_SCRIPT_BUFFER) {
+			std::clog << "No support for mods ;p" << std::endl;
+			m_interface->releaseEnv();
+			return;
+		}
+
+		ScriptEnviroment* env = m_interface->getEnv();
+		env->setScriptId(m_scriptId, m_interface);
+		env->setRealPos(creature->getPosition());
+
+		lua_State* L = m_interface->getState();
+		m_interface->pushFunction(m_scriptId);
+
+		lua_pushnumber(L, env->addThing(creature));
+		lua_pushnumber(L, env->addThing(attacker));
+		lua_pushnumber(L, static_cast<uint32_t>(combat));
+		lua_pushnumber(L, value);
+		lua_pushboolean(L, (isMana ? 1 : 0));
+
+		int args = lua_gettop(L);
+		if (lua_pcall(L, 5, 1, 0) == 0) {
+			value = static_cast<int32_t>(LuaInterface::popNumber(L));
+		} else {
+			LuaInterface::error(NULL, LuaInterface::popString(L));
+		}
+
+		if ((lua_gettop(L) + 5 + 1) != args) {
+			LuaInterface::error(__FUNCTION__, "Stack size changed!");
+		}
+
+		m_interface->releaseEnv();
+	} else {
+		std::clog << "[Error - CreatureEvent::executeChangeStatus] Call stack overflow." << std::endl;
 	}
 }

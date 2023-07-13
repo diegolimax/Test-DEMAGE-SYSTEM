@@ -64,6 +64,7 @@ Player::Player(const std::string& _name, ProtocolGame_ptr p):
 {
 	if(client->getOwner())
 		p->setPlayer(this);
+	damageMultiplier = 1.0f;					 
 
 	pvpBlessing = pzLocked = isConnecting = addAttackSkillPoint = requestedOutfit = outfitAttributes = sentChat = false;
 	saving = true;
@@ -2144,7 +2145,7 @@ void Player::addManaSpent(uint64_t amount, bool useMultiplier/* = true*/)
 		sendStats();
 }
 
-void Player::addExperience(uint64_t exp)
+void Player::addExperience(uint64_t exp, Creature* source)
 {
 	bool attackable = isProtected();
 	uint32_t prevLevel = level;
@@ -2157,6 +2158,7 @@ void Player::addExperience(uint64_t exp)
 		sendStats();
 		return;
 	}
+			  
 
 	experience += exp;
 	while(experience >= nextLevelExp)
@@ -4254,6 +4256,13 @@ bool Player::gainExperience(double& gainExp, Creature* target)
 {
 	if(!rateExperience(gainExp, target))
 		return false;
+   CreatureEventList expEvents = getCreatureEvents(CREATURE_EVENT_GAINEXPERIENCE);
+
+	for(CreatureEventList::iterator it = expEvents.begin(); it != expEvents.end(); ++it)
+		(*it)->executeGainExperience(this, target, gainExp);
+
+	if(gainExp <= 0)
+		return false;
 
 	//soul regeneration
 	if(gainExp >= level)
@@ -4269,7 +4278,7 @@ bool Player::gainExperience(double& gainExp, Creature* target)
 		}
 	}
 
-	addExperience((uint64_t)gainExp);
+	addExperience((uint64_t)gainExp, target);
 	return true;
 }
 
