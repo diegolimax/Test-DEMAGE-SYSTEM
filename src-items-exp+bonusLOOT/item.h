@@ -113,6 +113,8 @@ enum AttrTypes_t
 	ATTR_ARTICLE = 41,
 	ATTR_SCRIPTPROTECTED = 42,
 	ATTR_DUALWIELD = 43,
+	ATTR_BOOST_EXP = 44,
+	ATTR_RATE_LOOT = 45,
 	ATTR_ATTRIBUTE_MAP = 128
 };
 
@@ -259,6 +261,8 @@ class Item : virtual public Thing, public ItemAttributes
 		bool isDualWield() const;
 
 		int32_t getAttack() const;
+		int32_t getBoostExp() const;
+		int32_t getRateLoot() const;
 		int32_t getExtraAttack() const;
 		int32_t getDefense() const;
 		int32_t getExtraDefense() const;
@@ -420,6 +424,26 @@ inline int32_t Item::getAttack() const
 		return v;
 
 	return items[id].attack;
+}
+
+inline int32_t Item::getBoostExp() const
+{
+	bool ok;
+	int32_t v = getIntegerAttribute("boostexp", ok);
+	if(ok)
+		return v;
+
+	return items[id].boostExp;
+}
+
+inline int32_t Item::getRateLoot() const
+{
+	bool ok;
+	int32_t v = getIntegerAttribute("rateloot", ok);
+	if(ok)
+		return v;
+
+	return items[id].rateLoot;
 }
 
 inline int32_t Item::getExtraAttack() const

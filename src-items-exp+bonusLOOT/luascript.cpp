@@ -11057,6 +11057,8 @@ int32_t LuaInterface::luaGetItemInfo(lua_State* L)
 	setField(L, "writer", item->writer);
 	setField(L, "text", item->text);
 	setField(L, "attack", item->attack);
+	setField(L, "boostexp", item->boostExp);
+	setField(L, "rateloot", item->rateLoot);
 	setField(L, "extraAttack", item->extraAttack);
 	setField(L, "defense", item->defense);
 	setField(L, "extraDefense", item->extraDefense);

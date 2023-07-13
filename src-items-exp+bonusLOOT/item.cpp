@@ -463,6 +463,26 @@ Attr_ReadValue Item::readAttr(AttrTypes_t attr, PropStream& propStream)
 			setAttribute("attack", attack);
 			break;
 		}
+		
+		case ATTR_BOOST_EXP:
+		{
+			int32_t boostExp;
+			if(!propStream.getLong((uint32_t&)boostExp))
+				return ATTR_READ_ERROR;
+
+			setAttribute("boostexp", boostExp);
+			break;
+		}
+		
+		case ATTR_RATE_LOOT:
+		{
+			int32_t rateLoot;
+			if(!propStream.getLong((uint32_t&)rateLoot))
+				return ATTR_READ_ERROR;
+
+			setAttribute("rateloot", rateLoot);
+			break;
+		}
 
 		case ATTR_EXTRAATTACK:
 		{
@@ -884,6 +904,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 		subType = item->getSubType();
 
 	bool dot = true;
+	int32_t boostExp = 0, rateLoot = 0;
 	if(it.isRune())
 	{
 		if(!it.runeSpellName.empty())
@@ -981,6 +1002,30 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 				s << ", ";
 
 			s << "AS: " << (item ? item->getAttackSpeed() : it.attackSpeed);
+		}
+		
+		boostExp = (item ? item->getBoostExp() : it.boostExp);
+		if(boostExp != 0)
+		{
+			if (begin) {
+				begin = false;
+				s << " (";
+			} else {
+				s << ", ";
+			}
+			s << "Exp: +" << boostExp << "%";
+		}
+		
+		rateLoot = (item ? item->getRateLoot() : it.rateLoot);
+		if(rateLoot != 0)
+		{
+			if (begin) {
+				begin = false;
+				s << " (";
+			} else {
+				s << ", ";
+			}
+			s << "Loot: +" << rateLoot << "%";
 		}
 
 		if(it.hasAbilities())
@@ -1264,7 +1309,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 					} else {
 						s << ", ";
 					}
-					s << "reflect: ";
+					s << "reflect Chance: ";
 				} else {
 					s << ", ";
 				}
@@ -1272,11 +1317,11 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 				s << chance << "% for ";
 				if (percent > 99) {
 					s << "Deus";
-				} else if (percent >= 30) {
+				} else if (percent >= 15) {
 					s << "Lendario";
-				} else if (percent >= 20) {
-					s << "Epico";
 				} else if (percent >= 10) {
+					s << "Epico";
+				} else if (percent >= 5) {
 					s << "Raro";
 				} else {
 					s << "Comum";
@@ -1295,7 +1340,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 				s << ", ";
 			}
 
-			s << "reflect: " << tmpValues.back() << "% for ";
+			s << "reflect Chance: " << tmpValues.back() << "% for ";
 
 			allSame = true;
 			tmpValues.clear();
@@ -1315,11 +1360,11 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 				int32_t percent = tmpValues.back();
 				if (percent > 99) {
 					s << "Deus";
-				} else if (percent >= 75) {
+				} else if (percent >= 15) {
 					s << "Lendario";
-				} else if (percent >= 50) {
+				} else if (percent >= 10) {
 					s << "Epico";
-				} else if (percent >= 25) {
+				} else if (percent >= 5) {
 					s << "Raro";
 				} else {
 					s << "comum";
@@ -1437,6 +1482,30 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 					s << ", ";
 
 				s << "speed " << std::showpos << (int32_t)(it.abilities->speed / 2) << std::noshowpos;
+			}
+
+			boostExp = (item ? item->getBoostExp() : it.boostExp);
+			if(boostExp != 0)
+			{
+				if (begin) {
+					begin = false;
+					s << " (";
+				} else {
+					s << ", ";
+				}
+				s << "Exp: +" << boostExp << "%";
+			}
+
+			rateLoot = (item ? item->getRateLoot() : it.rateLoot);
+			if(rateLoot != 0)
+			{
+				if (begin) {
+					begin = false;
+					s << " (";
+				} else {
+					s << ", ";
+				}
+				s << "Loot: +" << rateLoot << "%";
 			}
 
 			int32_t statPercent = (item ? item->getDamagePercent() : it.abilities->damagePercent);
@@ -1597,7 +1666,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 					} else {
 						s << ", ";
 					}
-					s << "reflect: ";
+					s << "reflect Chance: ";
 				} else {
 					s << ", ";
 				}
@@ -1605,11 +1674,11 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 				s << chance << "% for ";
 				if (percent > 99) {
 					s << "Deus";
-				} else if (percent >= 30) {
+				} else if (percent >= 15) {
 					s << "Lendario";
-				} else if (percent >= 20) {
-					s << "Epico";
 				} else if (percent >= 10) {
+					s << "Epico";
+				} else if (percent >= 5) {
 					s << "Raro";
 				} else {
 					s << "Comum";
@@ -1628,7 +1697,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 				s << ", ";
 			}
 
-			s << "reflect: " << tmpValues.back() << "% for ";
+			s << "reflect Chance: " << tmpValues.back() << "% for ";
 
 			allSame = true;
 			tmpValues.clear();
@@ -1648,11 +1717,11 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 				int32_t percent = tmpValues.back();
 				if (percent > 99) {
 					s << "Deus";
-				} else if (percent >= 30) {
+				} else if (percent >= 15) {
 					s << "Lendario";
-				} else if (percent >= 20) {
-					s << "Epico";
 				} else if (percent >= 10) {
+					s << "Epico";
+				} else if (percent >= 5) {
 					s << "Raro";
 				} else {
 					s << "Comum";
@@ -1668,7 +1737,19 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 		}
 	}
 	else if(it.isContainer())
-		s << " (Vol:" << (int32_t)it.maxItems << ")";
+	{
+		s << " (Vol:" << (int32_t)it.maxItems;
+
+		boostExp = (item ? item->getBoostExp() : it.boostExp);
+		if(boostExp != 0)
+			s << ", Exp: +" << boostExp << "%";
+
+		rateLoot = (item ? item->getRateLoot() : it.rateLoot);
+		if(rateLoot != 0)
+			s << ", Loot: +" << rateLoot << "%";
+
+		s << ")";
+	}
 	else if(it.isKey())
 		s << " (Key:" << (item ? (int32_t)item->getActionId() : 0) << ")";
 	else if(it.isFluidContainer())
@@ -1721,6 +1802,44 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance, const
 	else if(it.levelDoor && item && item->getActionId() >= (int32_t)it.levelDoor && item->getActionId()
 		<= ((int32_t)it.levelDoor + g_config.getNumber(ConfigManager::MAXIMUM_DOOR_LEVEL)))
 		s << " for level " << item->getActionId() - it.levelDoor;
+
+	bool begin = true;
+	if(boostExp == 0)
+	{
+		boostExp = (item ? item->getBoostExp() : it.boostExp);
+		if(boostExp != 0)
+		{
+			if(begin)
+			{
+				begin = false;
+				s << " (";
+			}
+			else
+				s << ", ";
+			
+			s << "Exp: +" << boostExp << "%";
+		}
+	}
+
+	if(rateLoot == 0)
+	{
+		rateLoot = (item ? item->getRateLoot() : it.rateLoot);
+		if(rateLoot != 0)
+		{
+			if(begin)
+			{
+				begin = false;
+				s << " (";
+			}
+			else
+				s << ", ";
+			
+			s << "Loot: +" << rateLoot << "%";
+		}
+	}
+
+	if(!begin)
+		s << ")";
 
 	if(it.showCharges)
 		s << " that has " << subType << " charge" << (subType != 1 ? "s" : "") << " left";

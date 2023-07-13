@@ -4321,6 +4321,26 @@ bool Player::gainExperience(double& gainExp, Creature* target)
 		}
 	}
 
+	// CUSTOM: By Weslley (xMonkey)
+	Monster* monster = target ? target->getMonster() : NULL;
+	if(monster)
+	{
+		int32_t boostExp = 0;
+		for(int32_t i = SLOT_FIRST; i < SLOT_LAST; ++i)
+		{
+			Item* item = getEquippedItem((slots_t)i);
+			if(item)
+			{
+				int32_t tempBoostExp = item->getBoostExp();
+				if(tempBoostExp != 0)
+					boostExp += tempBoostExp;
+			}
+		}
+
+		if(boostExp > 0)
+			gainExp = (gainExp + (gainExp * boostExp / 100));
+	}
+
 	addExperience((uint64_t)gainExp, target);
 	return true;
 }

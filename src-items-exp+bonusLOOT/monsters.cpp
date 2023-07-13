@@ -87,16 +87,20 @@ void MonsterType::reset()
 	elementMap.clear();
 }
 
-ItemList MonsterType::createLoot(const LootBlock& lootBlock)
+ItemList MonsterType::createLoot(const LootBlock& lootBlock, uint16_t addLootPercent)
 {
-	uint16_t item = lootBlock.ids[0], random = Monsters::getLootRandom(), count = 0;
+	uint16_t item = lootBlock.ids[0], random = Monsters::getLootRandom(), count = 0, adicionalDrop = 0;
 	if(lootBlock.ids.size() > 1)
 		item = lootBlock.ids[random_range((size_t)0, lootBlock.ids.size() - 1)];
+	
+	if(addLootPercent > 0)
+		adicionalDrop = (lootBlock.chance * addLootPercent / 100);
 
-	ItemList items;
-	if(random < lootBlock.chance)
+	uint16_t r_result = lootBlock.chance + adicionalDrop;
+	if(random < r_result)
 		count = random % lootBlock.count + 1;
 
+	ItemList items;
 	Item* tmpItem = NULL;
 	while(count > 0)
 	{
@@ -136,7 +140,7 @@ bool MonsterType::createChildLoot(Container* parent, const LootBlock& lootBlock,
 	ItemList items;
 	for(; it != lootBlock.childLoot.end() && !parent->full(); ++it)
 	{
-		items = createLoot(*it);
+		items = createLoot(*it, 0);
 		if(items.empty())
 			continue;
 
@@ -189,18 +193,33 @@ uint16_t Monsters::getLootRandom()
 
 void MonsterType::dropLoot(Container* corpse)
 {
+	uint32_t addLootPercent = 0;
 	AutoLootStruct ALS;
 	Player* owner = g_game.getPlayerByGuid(corpse->getCorpseOwner());
 
 	ALS.owner = owner;
-	if (owner && owner->statusAutoLoot() == "On") {
-		ALS.enabled = true;
+	if (owner)
+	{
+		if (owner->statusAutoLoot() == "On")
+			ALS.enabled = true;
+
+		// CUSTOM: By Weslley(xMonkey)
+		for(int32_t i = SLOT_FIRST; i < SLOT_LAST; ++i)
+		{
+			Item* item = owner->getEquippedItem((slots_t)i);
+			if(item)
+			{
+				int32_t tempRateLoot = item->getRateLoot();
+				if(tempRateLoot != 0)
+					addLootPercent += tempRateLoot;
+			}
+		}
 	}
 
 	ItemList items;
 	for(LootItems::const_iterator it = lootItems.begin(); it != lootItems.end() && !corpse->full(); ++it)
 	{
-		items = createLoot(*it);
+		items = createLoot(*it, addLootPercent);
 		if(items.empty())
 			continue;
 
